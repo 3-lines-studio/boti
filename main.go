@@ -1,13 +1,3 @@
-// Command boti is the generic Botdir host loader for the AX ecosystem.
-//
-// It reads a bot's bot.toml, installs the consumer, engine, and declared tool
-// binaries, wires the standard Botdir environment, runs the bot's [[pre_run]]
-// hooks, then starts the declared consumer (default slaxi).
-//
-// Modes:
-//
-//	boti install   read Root/bot.toml, install any missing tool binaries
-//	boti           (run) set up the bot root and exec the consumer
 package main
 
 import (
@@ -26,8 +16,6 @@ import (
 
 const defaultInstallURL = "https://ax.3lines.studio/install.sh"
 
-// botConfig holds the bot.toml root keys the loader reads. A host loader owns
-// the env, pre_run, and consumer keys; consumers ignore tables they do not own.
 type botConfig struct {
 	Model    string            `toml:"model"`
 	BaseURL  string            `toml:"base_url"`
@@ -37,7 +25,6 @@ type botConfig struct {
 	PreRun   []preRunHook      `toml:"pre_run"`
 }
 
-// preRunHook is one command run before the consumer starts.
 type preRunHook struct {
 	Command string `toml:"command"`
 }
@@ -97,8 +84,6 @@ func installerURL(flagVal string) string {
 	return defaultInstallURL
 }
 
-// install reads Root/bot.toml and installs ax, slaxi, and each declared tool
-// that is not already on PATH.
 func install(root, installURL string) error {
 	bc, found, err := readBotConfig(root)
 	if err != nil {
@@ -144,22 +129,14 @@ func install(root, installURL string) error {
 	return nil
 }
 
-// run wires the standard Botdir environment, runs the bot's [[pre_run]] hooks,
-// then replaces this process with the declared consumer (default slaxi).
 func run(root string) error {
-	// Start everything from the bot root.
 	if err := os.Chdir(root); err != nil {
 		return fmt.Errorf("chdir %s: %w", root, err)
 	}
 
 	env := os.Environ()
-	// BOT_ROOT is the single canonical anchor: consumers and tools derive the
-	// standard paths (workspace/, skills/, state/, run/, secrets/, bot.md) from
-	// it by convention instead of each getting its own environment variable.
 	env = setEnv(env, "BOT_ROOT", root)
 
-	// Declarative runtime environment from the bot's [env] table. Host
-	// environment wins.
 	bc, _, err := readBotConfig(root)
 	if err != nil {
 		return err
@@ -167,8 +144,6 @@ func run(root string) error {
 	for k, v := range bc.Env {
 		env = setEnvIfUnset(env, k, v)
 	}
-	// Pre-start hooks run with the bot environment in order. A failing hook
-	// aborts startup; a hook that may fail should handle it (e.g. `|| true`).
 	for _, h := range bc.PreRun {
 		if h.Command == "" {
 			continue
@@ -193,8 +168,6 @@ func run(root string) error {
 	return syscall.Exec(consumerPath, []string{consumer}, env)
 }
 
-// readBotConfig reads Root/bot.toml if present. found is false and err is nil
-// when the file is absent (runtime bots may omit it); a parse error is fatal.
 func readBotConfig(root string) (botConfig, bool, error) {
 	var bc botConfig
 	data, err := os.ReadFile(filepath.Join(root, "bot.toml"))
@@ -210,13 +183,11 @@ func readBotConfig(root string) (botConfig, bool, error) {
 	return bc, true, nil
 }
 
-// fetchInstaller writes the installer script to a temp file and returns its
-// path. It supports http(s) URLs and file:// URLs (for local testing).
 func fetchInstaller(url string) (string, error) {
 	var data []byte
 	switch {
 	case strings.HasPrefix(url, "http://"), strings.HasPrefix(url, "https://"):
-		resp, err := http.Get(url) //nolint:gosec // URL comes from the host or a fixed default.
+		resp, err := http.Get(url)
 		if err != nil {
 			return "", err
 		}
@@ -265,7 +236,6 @@ func runInstaller(script, pkg string) error {
 	return cmd.Run()
 }
 
-// setEnv sets key=value in env, replacing any existing entry.
 func setEnv(env []string, key, value string) []string {
 	prefix := key + "="
 	for i, e := range env {
@@ -277,7 +247,6 @@ func setEnv(env []string, key, value string) []string {
 	return append(env, prefix+value)
 }
 
-// setEnvIfUnset sets key=value in env only when key is not already present.
 func setEnvIfUnset(env []string, key, value string) []string {
 	prefix := key + "="
 	for _, e := range env {
@@ -288,7 +257,6 @@ func setEnvIfUnset(env []string, key, value string) []string {
 	return append(env, prefix+value)
 }
 
-// envValue returns the value of key in env, or "".
 func envValue(env []string, key string) string {
 	prefix := key + "="
 	for _, e := range env {
