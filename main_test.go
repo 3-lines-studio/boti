@@ -544,10 +544,17 @@ exit 7
 	if code != 7 {
 		t.Fatalf("exit code = %d, want 7\n%s", code, out)
 	}
+	// After chdir, the consumer's `pwd` reports the physical path; on macOS a
+	// tmpdir under /var/folders resolves to /private/var/folders. Resolve the
+	// root so the assertion holds on any platform.
+	physicalRoot := root
+	if pr, err := filepath.EvalSymlinks(root); err == nil {
+		physicalRoot = pr
+	}
 	for _, want := range []string{
 		"hook:" + root + ":host",
 		"hook2:secret",
-		"cons:" + root + ":" + root + ":host:secret",
+		"cons:" + physicalRoot + ":" + root + ":host:secret",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\n%s", want, out)
