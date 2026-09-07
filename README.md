@@ -18,7 +18,7 @@ RUN boti install
 CMD ["boti"]
 ```
 
-`boti install` installs missing tools through `https://ax.3lines.studio/install.sh`, honoring `AX_PREFIX`, `AX_VERSION` (for `ax`), and `VERSION` (for other tools). `boti` exports `BOT_ROOT` as the single anchor; consumers and tools derive `workspace/`, `skills/`, `state/`, `run/`, `secrets/`, `bot.md` from it by convention.
+`boti install` installs missing tools through `https://ax.3lines.studio/install.sh`, honoring `AX_PREFIX`, `AX_VERSION` (for `ax`), and `VERSION` (for other tools). `boti` exports `BOT_ROOT` (the definition root) and `BOT_DATA` (the runtime root, defaulting to `BOT_ROOT`); consumers and tools derive definition paths (`bot.md`, `skills/`) from `BOT_ROOT` and runtime paths (`workspace/`, `state/`, `run/`) from `BOT_DATA`, with secrets host-provided and volatile.
 
 ## `bot.toml`
 

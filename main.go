@@ -136,6 +136,7 @@ func run(root string) error {
 
 	env := os.Environ()
 	env = setEnv(env, "BOT_ROOT", root)
+	env = setEnvIfUnset(env, "BOT_DATA", root)
 
 	bc, _, err := readBotConfig(root)
 	if err != nil {

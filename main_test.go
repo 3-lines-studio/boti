@@ -526,14 +526,14 @@ WAX_NO_SANDBOX = "config"
 PRIVATE = "secret"
 
 [[pre_run]]
-command = "echo hook:$BOT_ROOT:$WAX_NO_SANDBOX"
+command = "echo hook:$BOT_ROOT:$BOT_DATA:$WAX_NO_SANDBOX"
 
 [[pre_run]]
 command = "echo hook2:$PRIVATE"
 `)
 	bindir := t.TempDir()
 	writeFile(t, filepath.Join(bindir, "cons-echo"), `#!/bin/sh
-echo "cons:$(pwd):$BOT_ROOT:$WAX_NO_SANDBOX:$PRIVATE"
+echo "cons:$(pwd):$BOT_ROOT:$BOT_DATA:$WAX_NO_SANDBOX:$PRIVATE"
 exit 7
 `)
 	t.Setenv("PATH", bindir+":"+os.Getenv("PATH"))
@@ -552,13 +552,33 @@ exit 7
 		physicalRoot = pr
 	}
 	for _, want := range []string{
-		"hook:" + root + ":host",
+		"hook:" + root + ":" + root + ":host",
 		"hook2:secret",
-		"cons:" + physicalRoot + ":" + root + ":host:secret",
+		"cons:" + physicalRoot + ":" + root + ":" + root + ":host:secret",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\n%s", want, out)
 		}
+	}
+}
+
+func TestRunPreservesHostBotData(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "bot.toml"), `consumer = "cons-echo"
+`)
+	bindir := t.TempDir()
+	writeFile(t, filepath.Join(bindir, "cons-echo"), `#!/bin/sh
+echo "cons:$BOT_ROOT:$BOT_DATA"
+exit 0
+`)
+	t.Setenv("PATH", bindir+":"+os.Getenv("PATH"))
+	t.Setenv("BOT_DATA", "/host-data")
+	out, code := spawnHelper(t, "run", root)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, out)
+	}
+	if !strings.Contains(out, "cons:"+root+":/host-data") {
+		t.Fatalf("host BOT_DATA not preserved\n%s", out)
 	}
 }
 
