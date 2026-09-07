@@ -33,7 +33,7 @@ func main() {
 	fs := flag.NewFlagSet("boti", flag.ExitOnError)
 	dir := fs.String("C", "", "bot root directory (default: $BOT_ROOT, else cwd)")
 	installURL := fs.String("install-url", "", "installer script URL (default: $BOTI_INSTALL_URL, else the hosted installer)")
-	fs.Parse(os.Args[1:])
+	_ = fs.Parse(os.Args[1:])
 
 	root := resolveRoot(*dir)
 	mode := "run"
@@ -118,7 +118,7 @@ func install(root, installURL string) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(installer)
+	defer func() { _ = os.Remove(installer) }()
 
 	for _, p := range missing {
 		fmt.Fprintf(os.Stderr, "boti: installing %s\n", p)
@@ -191,7 +191,7 @@ func fetchInstaller(url string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusOK {
 			return "", fmt.Errorf("installer %s: %s", url, resp.Status)
 		}
@@ -214,16 +214,16 @@ func fetchInstaller(url string) (string, error) {
 		return "", err
 	}
 	if _, err := f.Write(data); err != nil {
-		f.Close()
-		os.Remove(f.Name())
+		_ = f.Close()
+		_ = os.Remove(f.Name())
 		return "", err
 	}
 	if err := f.Close(); err != nil {
-		os.Remove(f.Name())
+		_ = os.Remove(f.Name())
 		return "", err
 	}
 	if err := os.Chmod(f.Name(), 0o755); err != nil {
-		os.Remove(f.Name())
+		_ = os.Remove(f.Name())
 		return "", err
 	}
 	return f.Name(), nil

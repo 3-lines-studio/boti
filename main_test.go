@@ -276,7 +276,7 @@ func TestFetchInstallerFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(script)
+	defer func() { _ = os.Remove(script) }()
 	data, err := os.ReadFile(script)
 	if err != nil {
 		t.Fatal(err)
@@ -302,7 +302,7 @@ func TestFetchInstallerHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(script)
+	defer func() { _ = os.Remove(script) }()
 	data, err := os.ReadFile(script)
 	if err != nil {
 		t.Fatal(err)
@@ -589,7 +589,7 @@ command = "echo C"
 	if idxA < 0 || idxB < 0 || idxC < 0 || idxD < 0 {
 		t.Fatalf("output missing tokens\n%s", out)
 	}
-	if !(idxA < idxB && idxB < idxC && idxC < idxD) {
+	if idxA >= idxB || idxB >= idxC || idxC >= idxD {
 		t.Fatalf("hooks/consumer out of order: %d %d %d %d", idxA, idxB, idxC, idxD)
 	}
 }
